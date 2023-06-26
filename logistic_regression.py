@@ -2,21 +2,31 @@ from PIL import Image
 import os
 
 
-class DataPoint:
-	def __init__(self, vector, label):
-		self.vector = vector
-		self.label = label
-
-
+NUMBER_OF_FEATURES = 256 * 256 * 3  # The image dimensions are 256x256 and there are 3 color channels.
 TRAINING_PATH = 'training_data\\train'
 TEST_PATH = 'test_data\\test'
+LABELS = ['A', 'B']
 RESCALING_CONSTANT = 255
 DEBUG_MAX_IMAGES = 10  # we use this to speed up the data reading, remove later
 
 
+class LogitModel:
+	def __init__(self, weights, bias):
+		self.weights = weights
+		self.bias = bias
+
+
+class DataPoint:
+	def __init__(self, vector, label):
+		if len(vector) != NUMBER_OF_FEATURES:
+			raise ValueError(f'Unexpected dimension: {len(vector)}')
+		self.vector = vector
+		self.label = label
+
+
 def image_to_vector(image):
-	""" Converts an image into a 1D vector.
-	:param image: the image to be converted
+	""" Flattens an image into a 1D vector.
+	:param image: the image to be flattened.
 	:return: the 1D vector corresponding to the image, where the channels are flattened.
 	"""
 	vector = []
@@ -51,12 +61,13 @@ def get_entire_set(path):
 	"""
 	data_set = []
 	unlabelled_folder_path = os.getcwd() + '\\' + path
-	for label in ['A', 'B']:
+	for label in LABELS:
 		data_set.extend(get_labelled_set(unlabelled_folder_path + label + '\\', label))
 	return data_set
 
 
 def main():
+	logit_model = LogitModel([0] * NUMBER_OF_FEATURES, 0)
 	training_set = get_entire_set(TRAINING_PATH)
 	# train logit model on training set
 	# load test set
