@@ -20,7 +20,8 @@ class LogisticModel:
 		"""
 		Computes the predicted probability given an image vector.
 		"""
-		return logistic_sigmoid(inner_product(self.__weights, image_vector) + self.__bias)
+		logits = inner_product(self.__weights, image_vector) + self.__bias
+		return logistic_sigmoid(logits)
 
 	def __compute_gradients(self, data_point, predicted_probability):
 		"""
@@ -32,23 +33,55 @@ class LogisticModel:
 		bias_gradient = predicted_probability - data_point.get_label()
 		return weight_gradients, bias_gradient
 
-	def __update_model_parameters(self, gradients, learning_rate):
+	def __update_parameters(self, gradients, learning_rate):
+		"""
+		Updates the model parameters based on the gradients and the learning rate.
+		"""
 		for i in range(len(self.__weights)):
 			self.__weights[i] -= learning_rate * gradients[0][i]
 		self.__bias -= learning_rate * gradients[1]
 
-	def train(self, training_set, learning_rate=0.001, num_epochs=10):
+	def evaluate(self, evaluation_set, loss_function):
 		"""
-		Trains the logistic model by updating the model parameters.
+		Evaluates the model based on a loss function.
+		:param evaluation_set: the set to evaluate the model on.
+		:param loss_function: the loss function to evaluate the model with.
+		:return: the mean evaluation loss.
 		"""
+		total_loss = 0
+		true_cases = 0
+		for data_point in evaluation_set:
+			predicted_probability = self.__predict(data_point.get_vector())
+			total_loss += loss_function(predicted_probability, data_point.get_label())
+			rounded_probability = round(predicted_probability)
+			true_cases += rounded_probability == data_point.get_label()
+		return total_loss / len(evaluation_set), true_cases / len(evaluation_set)
+
+	def train(self, training_set, validation_set, loss_function, learning_rate=0.001, num_epochs=10):
+		"""
+		Trains the logistic model by iteratively updating the model parameters.
+		:param training_set: the set to train the model on.
+		:param validation_set: the hold-out validation set to validate the model on.
+		:param loss_function: the function to evaluate the model with.
+		:param learning_rate: the speed with which the gradient descent is performed.
+		:param num_epochs: the number of epochs to train the model.
+		"""
+		# TODO maybe use patience rather than a number of epochs? Then see where it stagnates.
 		for epoch in range(num_epochs):
-			total_loss = 0
+			train_loss = 0
+			train_true_cases = 0
 			for data_point in training_set:
 				predicted_probability = self.__predict(data_point.get_vector())
 				gradients = self.__compute_gradients(data_point, predicted_probability)
-				self.__update_model_parameters(gradients, learning_rate)
-				total_loss += cross_entropy_loss(predicted_probability, data_point.get_label())
-			print(f'Mean training loss at epoch {epoch + 1}: {total_loss / len(training_set)}')
+				self.__update_parameters(gradients, learning_rate)
+				train_loss += loss_function(predicted_probability, data_point.get_label())
+				rounded_probability = round(predicted_probability)
+				train_true_cases += rounded_probability == data_point.get_label()
+			val_loss, val_accuracy = self.evaluate(validation_set, loss_function)
+			print(f'Epoch {epoch + 1}:')
+			print(f'\ttrain loss = {train_loss}, train accuracy = {train_true_cases / len(training_set)}')
+			print(f'\tval loss = {val_loss}, val accuracy = {val_accuracy}')
+			print()
 
 
 def logistic_sigmoid(x):
@@ -70,15 +103,16 @@ def inner_product(vector1, vector2):
 	return scalar
 
 
-def cross_entropy_loss(p, y):
+def cross_entropy_loss(p, y, epsilon=10**-8):
 	"""
 	Computes the log loss.
 	:param p: the predicted probability of the label.
 	:param y: the true label.
+	:param epsilon: an epsilon used to deal with FPA.
 	:return: the log loss.
 	"""
+	if p == 0 or p == 1:
+		p = abs(p - epsilon)
 	if 0 < p < 1:
 		return -math.log(p) if y else -math.log(1 - p)
-	return 0 if p == y else 100000  # very large loss
-	# maybe introduce an epsilon for working with FPA
-	# raise ValueError(f'Probability {p} out of range (0,1)!')
+	raise ValueError(f'Probability {p} out of range (0,1)! How can you be so certain?')
