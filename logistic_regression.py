@@ -6,11 +6,10 @@ NUMBER_OF_FEATURES = 256 * 256 * 3  # The image dimensions are 256x256 and there
 ROOT = 'augmented_data\\'
 TRAINING_PATH = 'training_data\\train'
 VALIDATION_PATH = 'validation_data\\train'
-TEST_PATH = 'test_data (do not open!!!1!!!)\\test'
+TEST_PATH = 'test_data\\test'
 LABELS = ['A', 'B']
 POSITIVE_CLASS = LABELS[0]  # arbitrary choice
 RESCALING_CONSTANT = 255
-DEBUG_MAX_IMAGES = 1000000000  # we use this to speed up the data reading, remove later
 
 
 class DataPoint:
@@ -50,7 +49,7 @@ class DataPoint:
 
 
 def image_to_vector(image):
-	""" Flattens an image into a 1D vector  using row-wise flat.
+	""" Flattens an image into a 1D vector  using row-wise flattening.
 	:param image: the image to be flattened.
 	:return: the 1D vector corresponding to the image, where the channels are flattened.
 	"""
@@ -67,11 +66,7 @@ def get_labelled_set(folder_path, label):
 	:return: the labelled set.
 	"""
 	labelled_data_set = []
-	debug_image_index = 0
 	for filename in os.listdir(folder_path):
-		if debug_image_index == DEBUG_MAX_IMAGES:
-			break
-		debug_image_index += 1
 		fp = os.path.join(folder_path, filename)
 		with Image.open(fp) as image:
 			labelled_data_set.append(DataPoint(image_to_vector(image), label == POSITIVE_CLASS, filename))
@@ -90,14 +85,14 @@ def get_entire_data_set(path):
 	return data_set
 
 
-def load_n_train(model, lr):
+def load_n_train(model):
 	"""
 	Loads the reduced training set and validation set and starts up the training procedure.
 	"""
 	training_set = get_entire_data_set(ROOT + TRAINING_PATH)
 	validation_set = get_entire_data_set(ROOT + VALIDATION_PATH)
 	print(f'loaded training ({len(training_set)} images) and validation set ({len(validation_set)} images)')
-	model.train(training_set, validation_set, cross_entropy_loss, learning_rate=lr)
+	model.train(training_set, validation_set, cross_entropy_loss)
 
 
 def load_n_test(model):
@@ -105,6 +100,7 @@ def load_n_test(model):
 	Loads the test set and starts up the testing procedure.
 	"""
 	test_set = get_entire_data_set(TEST_PATH)
+	print(f'loaded test ({len(test_set)} images)')
 	loss, accuracy = model.evaluate(test_set, cross_entropy_loss)
 	print(f'test loss = {loss}, test accuracy = {accuracy}')
 
@@ -112,10 +108,11 @@ def load_n_test(model):
 def main():
 	logistic_model = LogisticModel([0] * NUMBER_OF_FEATURES, 0)
 	load_n_train(logistic_model)
-	# load_n_test(logistic_model)
+	load_n_test(logistic_model)
 
 
 def test():
+	""" Hyperparameter (learning rate) optimization"""
 	training_set = get_entire_data_set(ROOT + TRAINING_PATH)
 	validation_set = get_entire_data_set(ROOT + VALIDATION_PATH)
 	for lr in [0.001, 0.01, 0.1]:
@@ -124,4 +121,4 @@ def test():
 
 
 if __name__ == "__main__":
-	test()
+	main()

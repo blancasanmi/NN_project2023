@@ -9,7 +9,7 @@ class LogisticModel:
 	The following references were used for obtaining some more mathematical background (partial derivatives)
 	on logistic regression:
 	- Jurafsky, D. & Martin, J. (2023). Speech and Language Processing: Logistic Regression.
-	www.web.stanford.edu/~jurafsky/slp3/5.pdf
+	https://www.web.stanford.edu/~jurafsky/slp3/5.pdf
 	- Stanford University (2019). Section 3_soln. https://cs230.stanford.edu/fall2018/section_files/section3_soln.pdf
 	"""
 	def __init__(self, weights, bias):
@@ -20,6 +20,10 @@ class LogisticModel:
 		"""
 		self.__weights = weights
 		self.__bias = bias
+
+	def get_parameters(self):
+		""" Returns the parameters of the logistic model. """
+		return self.__weights.copy(), self.__bias
 
 	def __predict(self, image_vector):
 		"""
@@ -48,6 +52,8 @@ class LogisticModel:
 	def __update_parameters(self, gradient, learning_rate):
 		"""
 		Updates the model parameters based on the gradient and the learning rate.
+		:param gradient: the gradient vector
+		:param learning_rate: the learning rate
 		"""
 		for i in range(len(self.__weights)):
 			self.__weights[i] -= learning_rate * gradient[0][i]
@@ -106,6 +112,9 @@ def logistic_sigmoid(x):
 	"""
 	Computes the logistic sigmoid. The logistic sigmoid function is described by s(x) = 1 / (1 + e ** -x).
 	"""
+	# Bug fix: Prevent overflow issues, so round very low p to 0.
+	if x < -200:
+		return 0
 	return 1 / (1 + math.exp(-x))
 
 
@@ -129,7 +138,7 @@ def cross_entropy_loss(p, y, epsilon=10**-8):
 	:param epsilon: an epsilon used to deal with FPA.
 	:return: the log loss.
 	"""
-	# For FPE with the domain of log()
+	# Bug fix: For FPE with the domain of log()
 	if p == 0 or p == 1:
 		p = abs(p - epsilon)
 	if 0 < p < 1:
