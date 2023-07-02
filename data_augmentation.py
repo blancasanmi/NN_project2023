@@ -70,7 +70,7 @@ def transform_image(directory, image):
 	cv2.imwrite(directory + 'distorted_' + image, src)
 
 
-def augment_data(number_of_augmented_images=500):
+def augment_data(number_of_augmented_images=400):
 	"""
 	Augments randomly chosen images from both classes.
 	:param number_of_augmented_images: the number of images to augment
